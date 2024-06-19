@@ -553,7 +553,7 @@ public class Wallet {
       long currentTime = System.currentTimeMillis();
       if (trx.getExpiration() < currentTime) {
         throw new TransactionExpirationException( String.format(
-            "Transaction expiration, transaction expiration time is %d, but headBlockTime is %d",
+            "Transaction expiration, transaction expiration time is %d, but current time is %d",
             trx.getExpiration(), currentTime));
       }
       int num = tronNetService.fastBroadcastTransaction(message);
