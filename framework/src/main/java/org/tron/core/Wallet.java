@@ -550,6 +550,12 @@ public class Wallet {
       }
       TransactionMessage message = new TransactionMessage(trx.getInstance().toByteArray());
       dbManager.pushTransaction(trx);
+      long currentTime = System.currentTimeMillis();
+      if (trx.getExpiration() < currentTime) {
+        throw new TransactionExpirationException( String.format(
+            "Transaction expiration, transaction expiration time is %d, but headBlockTime is %d",
+            trx.getExpiration(), currentTime));
+      }
       int num = tronNetService.fastBroadcastTransaction(message);
       if (num == 0 && minEffectiveConnection != 0) {
         return builder.setResult(false).setCode(response_code.NOT_ENOUGH_EFFECTIVE_CONNECTION)

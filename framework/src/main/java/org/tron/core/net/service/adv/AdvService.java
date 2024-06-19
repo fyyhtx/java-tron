@@ -206,6 +206,9 @@ public class AdvService {
       blockCache.put(item, msg);
     } else if (msg instanceof TransactionMessage) {
       TransactionMessage trxMsg = (TransactionMessage) msg;
+      if (trxMsg.getTransactionCapsule().getExpiration() < System.currentTimeMillis()) {
+        return;
+      }
       item = new Item(trxMsg.getMessageId(), InventoryType.TRX);
       trxCount.add();
       trxCache.put(item, new TransactionMessage(trxMsg.getTransactionCapsule().getInstance()));

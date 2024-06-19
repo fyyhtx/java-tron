@@ -71,6 +71,9 @@ public class TransactionsMsgHandler implements TronMsgHandler {
     int dropSmartContractCount = 0;
     for (Transaction trx : transactionsMessage.getTransactions().getTransactionsList()) {
       int type = trx.getRawData().getContract(0).getType().getNumber();
+      if (trx.getRawData().getExpiration() < System.currentTimeMillis()) {
+        continue;
+      }
       if (type == ContractType.TriggerSmartContract_VALUE
           || type == ContractType.CreateSmartContract_VALUE) {
         if (!smartContractQueue.offer(new TrxEvent(peer, new TransactionMessage(trx)))) {
