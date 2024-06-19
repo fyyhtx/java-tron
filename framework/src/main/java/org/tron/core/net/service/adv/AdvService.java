@@ -207,6 +207,7 @@ public class AdvService {
     } else if (msg instanceof TransactionMessage) {
       TransactionMessage trxMsg = (TransactionMessage) msg;
       if (trxMsg.getTransactionCapsule().getExpiration() < System.currentTimeMillis()) {
+        logger.info("Expired transaction:{} before broadcast", trxMsg.getMessageId());
         return;
       }
       item = new Item(trxMsg.getMessageId(), InventoryType.TRX);
