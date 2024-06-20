@@ -92,7 +92,7 @@ public class TransactionsMsgHandler implements TronMsgHandler {
               Hex.toHexString(TransactionCapsule.getOwner(trx.getRawData().getContract(0))),
               type);
         }
-        continue;
+        // continue;
       }
       if (type == ContractType.TriggerSmartContract_VALUE
           || type == ContractType.CreateSmartContract_VALUE) {
