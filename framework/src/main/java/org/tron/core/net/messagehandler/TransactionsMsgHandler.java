@@ -7,14 +7,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.bouncycastle.util.encoders.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.tron.common.es.ExecutorServiceManager;
-import org.tron.common.parameter.CommonParameter;
-import org.tron.common.utils.Sha256Hash;
-import org.tron.core.capsule.ContractCapsule;
-import org.tron.core.capsule.TransactionCapsule;
 import org.tron.core.config.args.Args;
 import org.tron.core.exception.P2pException;
 import org.tron.core.exception.P2pException.TypeEnum;
@@ -76,24 +71,6 @@ public class TransactionsMsgHandler implements TronMsgHandler {
     int dropSmartContractCount = 0;
     for (Transaction trx : transactionsMessage.getTransactions().getTransactionsList()) {
       int type = trx.getRawData().getContract(0).getType().getNumber();
-      if (trx.getRawData().getExpiration() < System.currentTimeMillis()) {
-        if (type == ContractType.TriggerSmartContract_VALUE) {
-          logger.info("Received expired transaction: {}, from address: {}, type: {}, " +
-                  "smart contract address: {}",
-              Sha256Hash.of(CommonParameter.getInstance().isECKeyCryptoEngine(),
-                  trx.getRawData().toByteArray()),
-              Hex.toHexString(TransactionCapsule.getOwner(trx.getRawData().getContract(0))),
-              type,
-              ContractCapsule.getTriggerContractFromTransaction(trx).getContractAddress());
-        } else {
-          logger.info("Received expired transaction: {}, from address: {}, type: {}",
-              Sha256Hash.of(CommonParameter.getInstance().isECKeyCryptoEngine(),
-                  trx.getRawData().toByteArray()),
-              Hex.toHexString(TransactionCapsule.getOwner(trx.getRawData().getContract(0))),
-              type);
-        }
-        // continue;
-      }
       if (type == ContractType.TriggerSmartContract_VALUE
           || type == ContractType.CreateSmartContract_VALUE) {
         if (!smartContractQueue.offer(new TrxEvent(peer, new TransactionMessage(trx)))) {
