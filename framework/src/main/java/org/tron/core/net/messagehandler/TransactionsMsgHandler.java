@@ -143,7 +143,8 @@ public class TransactionsMsgHandler implements TronMsgHandler {
         peer.disconnect(ReasonCode.BAD_TX);
       }
     } catch (TransactionExpirationException e) {
-      logger.warn(e.getMessage());
+      logger.warn("{}. trx: {}, peer: {}",
+          e.getMessage(), trx.getMessageId(), peer.getInetAddress());
     } catch (Exception e) {
       logger.error("Trx {} from peer {} process failed", trx.getMessageId(), peer.getInetAddress(),
           e);

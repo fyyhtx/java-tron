@@ -874,8 +874,8 @@ public class TransactionCapsule implements ProtoCapsule<Transaction> {
   public void checkExpiration() throws TransactionExpirationException {
     long currentTime = System.currentTimeMillis();
     if (getExpiration() < currentTime) {
-      throw new TransactionExpirationException( String.format(
-          "Transaction expiration, transaction expiration time is %d, but current time is %d",
+      throw new TransactionExpirationException(String.format(
+          "Transaction expiration time is %d, but current time is %d",
           getExpiration(), currentTime));
     }
   }
