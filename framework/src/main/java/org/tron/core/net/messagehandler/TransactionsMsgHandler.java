@@ -13,6 +13,7 @@ import org.tron.common.es.ExecutorServiceManager;
 import org.tron.core.config.args.Args;
 import org.tron.core.exception.P2pException;
 import org.tron.core.exception.P2pException.TypeEnum;
+import org.tron.core.exception.TransactionExpirationException;
 import org.tron.core.net.TronNetDelegate;
 import org.tron.core.net.message.TronMessage;
 import org.tron.core.net.message.adv.TransactionMessage;
@@ -128,7 +129,11 @@ public class TransactionsMsgHandler implements TronMsgHandler {
     }
 
     try {
+      // Prevent nodes from being attacked
+      trx.getTransactionCapsule().checkExpiration();
       tronNetDelegate.pushTransaction(trx.getTransactionCapsule());
+      // Avoid transactions being broadcast
+      trx.getTransactionCapsule().checkExpiration();
       advService.broadcast(trx);
     } catch (P2pException e) {
       logger.warn("Trx {} from peer {} process failed. type: {}, reason: {}",
@@ -137,6 +142,8 @@ public class TransactionsMsgHandler implements TronMsgHandler {
         peer.setBadPeer(true);
         peer.disconnect(ReasonCode.BAD_TX);
       }
+    } catch (TransactionExpirationException e) {
+      logger.warn(e.getMessage());
     } catch (Exception e) {
       logger.error("Trx {} from peer {} process failed", trx.getMessageId(), peer.getInetAddress(),
           e);

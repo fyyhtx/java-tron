@@ -549,13 +549,9 @@ public class Wallet {
         throw new ContractValidateException(ActuatorConstant.CONTRACT_NOT_EXIST);
       }
       TransactionMessage message = new TransactionMessage(trx.getInstance().toByteArray());
+      trx.checkExpiration(); // Prevent nodes from being attacked
       dbManager.pushTransaction(trx);
-      long currentTime = System.currentTimeMillis();
-      if (trx.getExpiration() < currentTime) {
-        throw new TransactionExpirationException( String.format(
-            "Transaction expiration, transaction expiration time is %d, but current time is %d",
-            trx.getExpiration(), currentTime));
-      }
+      trx.checkExpiration(); // Avoid transactions being broadcast
       int num = tronNetService.fastBroadcastTransaction(message);
       if (num == 0 && minEffectiveConnection != 0) {
         return builder.setResult(false).setCode(response_code.NOT_ENOUGH_EFFECTIVE_CONNECTION)
