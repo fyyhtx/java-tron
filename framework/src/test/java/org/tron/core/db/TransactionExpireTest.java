@@ -108,7 +108,7 @@ public class TransactionExpireTest {
         Sha256Hash.wrap(ByteString.copyFrom(
             ByteArray.fromHexString(
                 "0304f784e4e7bae517bcab94c3e0c9214fb4ac7ff9d7d5a937d1f40031f87b81"))),
-        System.currentTimeMillis() - 3000,
+        System.currentTimeMillis(),
         ByteString.copyFromUtf8("testAddress"));
     dbManager.getDynamicPropertiesStore().saveLatestBlockHeaderNumber(blockCapsule.getNum());
     dbManager.getDynamicPropertiesStore()

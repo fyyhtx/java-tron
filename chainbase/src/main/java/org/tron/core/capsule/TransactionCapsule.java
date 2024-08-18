@@ -871,12 +871,11 @@ public class TransactionCapsule implements ProtoCapsule<Transaction> {
     }
   }
 
-  public void checkExpiration() throws TransactionExpirationException {
-    long currentTime = System.currentTimeMillis();
-    if (getExpiration() < currentTime) {
+  public void checkExpiration(long nextSlotTime) throws TransactionExpirationException {
+    if (getExpiration() < nextSlotTime) {
       throw new TransactionExpirationException(String.format(
-          "Transaction expiration time is %d, but current time is %d",
-          getExpiration(), currentTime));
+          "Transaction expiration time is %d, but next slot time is %d",
+          getExpiration(), nextSlotTime));
     }
   }
 }
