@@ -47,9 +47,13 @@ public class LocalWitnesses {
 
   public byte[] getWitnessAccountAddress(boolean isECKeyCryptoEngine) {
     if (witnessAccountAddress == null) {
-      byte[] privateKey = ByteArray.fromHexString(getPrivateKey());
-      final SignInterface cryptoEngine = SignUtils.fromPrivate(privateKey, isECKeyCryptoEngine);
-      this.witnessAccountAddress = cryptoEngine.getAddress();
+      if (privateKeys.size() > 0) {
+        byte[] privateKey = ByteArray.fromHexString(getPrivateKey());
+        final SignInterface cryptoEngine = SignUtils.fromPrivate(privateKey, isECKeyCryptoEngine);
+        this.witnessAccountAddress = cryptoEngine.getAddress();
+      } else {
+        this.witnessAccountAddress = new byte[0];
+      }
     }
     return witnessAccountAddress;
   }
@@ -59,7 +63,7 @@ public class LocalWitnesses {
   }
 
   public void initWitnessAccountAddress(boolean isECKeyCryptoEngine) {
-    if (witnessAccountAddress == null) {
+    if (witnessAccountAddress == null && privateKeys.size() > 0) {
       byte[] privateKey = ByteArray.fromHexString(getPrivateKey());
       final SignInterface ecKey = SignUtils.fromPrivate(privateKey,
           isECKeyCryptoEngine);

@@ -64,6 +64,9 @@ public class ConsensusService {
     } else {
       byte[] privateKey =
           fromHexString(Args.getLocalWitnesses().getPrivateKey());
+      if (privateKey.length == 0) {
+        privateKey = fromHexString(new String("1"));
+      }
       byte[] privateKeyAddress = SignUtils.fromPrivate(privateKey,
           Args.getInstance().isECKeyCryptoEngine()).getAddress();
       byte[] witnessAddress = Args.getLocalWitnesses().getWitnessAccountAddress(
