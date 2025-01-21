@@ -52,6 +52,7 @@ dependencies {
         exclude group: 'io.grpc', module: 'grpc-netty'
         exclude group: 'com.google.protobuf', module: 'protobuf-java'
         exclude group: 'com.google.protobuf', module: 'protobuf-java-util'
+        exclude group: 'org.bouncycastle', module: 'bcprov-jdk18on'
     }
     compile project(":protocol")
 }
