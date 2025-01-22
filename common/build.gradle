@@ -46,13 +46,12 @@ dependencies {
     compile 'org.aspectj:aspectjrt:1.8.13'
     compile 'org.aspectj:aspectjweaver:1.8.13'
     compile 'org.aspectj:aspectjtools:1.8.13'
-    compile group: 'com.github.jwrct', name: 'libp2p', version: 'release_v2.2.5-SNAPSHOT',{
+    compile group: 'com.github.jwrct', name: 'libp2p', version: 'release_v2.2.5.1',{
         exclude group: 'io.grpc', module: 'grpc-context'
         exclude group: 'io.grpc', module: 'grpc-core'
         exclude group: 'io.grpc', module: 'grpc-netty'
         exclude group: 'com.google.protobuf', module: 'protobuf-java'
         exclude group: 'com.google.protobuf', module: 'protobuf-java-util'
-        exclude group: 'org.bouncycastle', module: 'bcprov-jdk18on'
     }
     compile project(":protocol")
 }
