@@ -56,37 +56,37 @@ public class ChainInventoryMsgHandler implements TronMsgHandler {
       return;
     }
 
-    while (!peer.getSyncBlockToFetch().isEmpty()) {
-      if (peer.getSyncBlockToFetch().peekLast().equals(blockIdWeGet.peekFirst())) {
-        break;
-      }
-      peer.getSyncBlockToFetch().pollLast();
-    }
+//    while (!peer.getSyncBlockToFetch().isEmpty()) {
+//      if (peer.getSyncBlockToFetch().peekLast().equals(blockIdWeGet.peekFirst())) {
+//        break;
+//      }
+//      peer.getSyncBlockToFetch().pollLast();
+//    }
 
     blockIdWeGet.poll();
 
     peer.setRemainNum(chainInventoryMessage.getRemainNum());
     peer.getSyncBlockToFetch().addAll(blockIdWeGet);
 
-    synchronized (tronNetDelegate.getBlockLock()) {
-      try {
-        BlockId blockId = null;
-        while (!peer.getSyncBlockToFetch().isEmpty() && tronNetDelegate
-                .containBlock(peer.getSyncBlockToFetch().peek())) {
-          blockId = peer.getSyncBlockToFetch().pop();
-          peer.setBlockBothHave(blockId);
-        }
-        if (blockId != null) {
-          logger.info("Block {} from {} is processed",
-              blockId.getString(), peer.getInetAddress());
-        }
-      } catch (NoSuchElementException e) {
-        logger.warn("Process ChainInventoryMessage failed, peer {}, isDisconnect:{}",
-                peer.getInetAddress(), peer.isDisconnect());
-        peer.setFetchAble(true);
-        return;
-      }
-    }
+//    synchronized (tronNetDelegate.getBlockLock()) {
+//      try {
+//        BlockId blockId = null;
+//        while (!peer.getSyncBlockToFetch().isEmpty() && tronNetDelegate
+//                .containBlock(peer.getSyncBlockToFetch().peek())) {
+//          blockId = peer.getSyncBlockToFetch().pop();
+//          peer.setBlockBothHave(blockId);
+//        }
+//        if (blockId != null) {
+//          logger.info("Block {} from {} is processed",
+//              blockId.getString(), peer.getInetAddress());
+//        }
+//      } catch (NoSuchElementException e) {
+//        logger.warn("Process ChainInventoryMessage failed, peer {}, isDisconnect:{}",
+//                peer.getInetAddress(), peer.isDisconnect());
+//        peer.setFetchAble(true);
+//        return;
+//      }
+//    }
 
     peer.setFetchAble(true);
     if ((chainInventoryMessage.getRemainNum() == 0 && !peer.getSyncBlockToFetch().isEmpty())

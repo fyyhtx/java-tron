@@ -69,17 +69,20 @@ public class SyncService {
 
   private final long syncFetchBatchNum = Args.getInstance().getSyncFetchBatchNum();
 
+  private long startSyncNum = 10_000_000;
+
   public void init() {
     ExecutorServiceManager.scheduleWithFixedDelay(fetchExecutor, () -> {
       try {
-        if (fetchFlag) {
-          fetchFlag = false;
-          startFetchSyncBlock();
-        }
+//        if (fetchFlag) {
+//          fetchFlag = false;
+//          startFetchSyncBlock();
+//        }
+        startFetchSyncBlock();
       } catch (Exception e) {
         logger.error("Fetch sync block error", e);
       }
-    }, 10, 1, TimeUnit.SECONDS);
+    }, 10000, 10, TimeUnit.MILLISECONDS);
 
     ExecutorServiceManager.scheduleWithFixedDelay(blockHandleExecutor, () -> {
       try {
@@ -119,10 +122,11 @@ public class SyncService {
       }
       LinkedList<BlockId> chainSummary;
       synchronized (tronNetDelegate.getForkLock()) {
-        chainSummary = getBlockChainSummary(peer);
+        chainSummary = getBlockChainSummaryTest(peer);
       }
       peer.setSyncChainRequested(new Pair<>(chainSummary, System.currentTimeMillis()));
       peer.sendMessage(new SyncBlockChainMessage(chainSummary));
+      startSyncNum += 2000;
     } catch (Exception e) {
       logger.error("Peer {} sync failed, reason: {}", peer.getInetAddress(), e);
       peer.disconnect(ReasonCode.SYNC_FAIL);
@@ -130,9 +134,10 @@ public class SyncService {
   }
 
   public void processBlock(PeerConnection peer, BlockMessage blockMessage) {
-    synchronized (blockJustReceived) {
-      blockJustReceived.put(blockMessage, peer);
-    }
+//    synchronized (blockJustReceived) {
+//      blockJustReceived.put(blockMessage, peer);
+//    }
+    peer.getSyncBlockToFetch().remove(blockMessage.getBlockId());
     handleFlag = true;
     if (peer.isSyncIdle()) {
       if (peer.getRemainNum() > 0
@@ -156,6 +161,12 @@ public class SyncService {
       requestBlockIds.invalidate(blockId);
       fetchFlag = true;
     }
+  }
+
+  private LinkedList<BlockId> getBlockChainSummaryTest(PeerConnection peer) throws P2pException {
+    LinkedList<BlockId> summary = new LinkedList<>();
+    summary.offer(getBlockIdByNum(startSyncNum));
+    return summary;
   }
 
   private LinkedList<BlockId> getBlockChainSummary(PeerConnection peer) throws P2pException {
@@ -226,7 +237,7 @@ public class SyncService {
   private void startFetchSyncBlock() {
     HashMap<PeerConnection, List<BlockId>> send = new HashMap<>();
     tronNetDelegate.getActivePeer().stream()
-        .filter(peer -> peer.isNeedSyncFromPeer() && peer.isSyncIdle())
+        //.filter(peer -> peer.isNeedSyncFromPeer() && peer.isSyncIdle())
         .filter(peer -> peer.isFetchAble())
         .forEach(peer -> {
           if (!send.containsKey(peer)) {
@@ -238,7 +249,7 @@ public class SyncService {
               requestBlockIds.put(blockId, peer);
               peer.getSyncBlockRequested().put(blockId, System.currentTimeMillis());
               send.get(peer).add(blockId);
-              if (send.get(peer).size() >= MAX_BLOCK_FETCH_PER_PEER) {
+              if (send.get(peer).size() >= 1999) {
                 break;
               }
             }
