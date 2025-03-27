@@ -69,7 +69,13 @@ public class SyncService {
 
   private final long syncFetchBatchNum = Args.getInstance().getSyncFetchBatchNum();
 
-  private long startSyncNum = 10_000_000;
+  private long startSyncNum = 1;
+  private long requestedCount = 0;
+  private long startRequestTime = 0;
+  private long lastRequestTime = System.currentTimeMillis();
+  private long lastReportTime = System.currentTimeMillis();
+  private long receiveBlockCount = 0;
+
 
   public void init() {
     ExecutorServiceManager.scheduleWithFixedDelay(fetchExecutor, () -> {
@@ -137,16 +143,17 @@ public class SyncService {
 //    synchronized (blockJustReceived) {
 //      blockJustReceived.put(blockMessage, peer);
 //    }
+    receiveBlockCount += 1;
     peer.getSyncBlockToFetch().remove(blockMessage.getBlockId());
     handleFlag = true;
-    if (peer.isSyncIdle()) {
+    //if (peer.isSyncIdle()) {
       if (peer.getRemainNum() > 0
           && peer.getSyncBlockToFetch().size() <= syncFetchBatchNum) {
         syncNext(peer);
       } else {
         fetchFlag = true;
       }
-    }
+    //}
   }
 
   public void onDisconnect(PeerConnection peer) {
@@ -249,7 +256,7 @@ public class SyncService {
               requestBlockIds.put(blockId, peer);
               peer.getSyncBlockRequested().put(blockId, System.currentTimeMillis());
               send.get(peer).add(blockId);
-              if (send.get(peer).size() >= 1999) {
+              if (send.get(peer).size() >= 2000) {
                 break;
               }
             }
@@ -259,6 +266,24 @@ public class SyncService {
     send.forEach((peer, blockIds) -> {
       if (!blockIds.isEmpty()) {
         peer.sendMessage(new FetchInvDataMessage(new LinkedList<>(blockIds), InventoryType.BLOCK));
+        requestedCount += blockIds.size();
+        long currentTime = System.currentTimeMillis();
+        if (startRequestTime > 0) {
+          if (currentTime - lastReportTime > 10 * 1000) {
+            long allQps = StrictMath.floorDiv(requestedCount * 1000,
+                currentTime - startRequestTime);
+            long currentQps = StrictMath.floorDiv(blockIds.size() * 1000,
+                currentTime - lastRequestTime);
+            long receiveQps = StrictMath.floorDiv(receiveBlockCount * 1000,
+                currentTime - startRequestTime);
+            logger.info("fast request block, allQps: {}, currentQps: {}, receiveQps: {}",
+                allQps, currentQps, receiveQps);
+            lastReportTime = currentTime;
+          }
+        } else {
+          startRequestTime = currentTime;
+        }
+        lastRequestTime = currentTime;
       }
     });
   }
