@@ -69,7 +69,7 @@ public class SyncService {
 
   private final long syncFetchBatchNum = Args.getInstance().getSyncFetchBatchNum();
 
-  private long startSyncNum = 1;
+  private long startSyncNum = 10_000_000;
   private long requestedCount = 0;
   private long startRequestTime = 0;
   private long lastRequestTime = System.currentTimeMillis();
