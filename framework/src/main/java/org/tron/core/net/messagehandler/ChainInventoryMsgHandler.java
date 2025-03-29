@@ -67,6 +67,7 @@ public class ChainInventoryMsgHandler implements TronMsgHandler {
 
     peer.setRemainNum(chainInventoryMessage.getRemainNum());
     peer.getSyncBlockToFetch().addAll(blockIdWeGet);
+    syncService.setLastSyncBlockId(blockIdWeGet.peekLast());
 
 //    synchronized (tronNetDelegate.getBlockLock()) {
 //      try {

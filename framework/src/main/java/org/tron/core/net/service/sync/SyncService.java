@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import com.google.protobuf.ByteString;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,6 +77,8 @@ public class SyncService {
   private long lastRequestTime = System.currentTimeMillis();
   private long lastReportTime = System.currentTimeMillis();
   private long receiveBlockCount = 0;
+  @Setter
+  private BlockId lastSyncBlockId;
 
 
   public void init() {
@@ -132,7 +136,7 @@ public class SyncService {
       }
       peer.setSyncChainRequested(new Pair<>(chainSummary, System.currentTimeMillis()));
       peer.sendMessage(new SyncBlockChainMessage(chainSummary));
-      startSyncNum += 2000;
+      startSyncNum = 0;
     } catch (Exception e) {
       logger.error("Peer {} sync failed, reason: {}", peer.getInetAddress(), e);
       peer.disconnect(ReasonCode.SYNC_FAIL);
@@ -172,7 +176,14 @@ public class SyncService {
 
   private LinkedList<BlockId> getBlockChainSummaryTest(PeerConnection peer) throws P2pException {
     LinkedList<BlockId> summary = new LinkedList<>();
-    summary.offer(getBlockIdByNum(startSyncNum));
+    if (startSyncNum == 0 && lastSyncBlockId != null) {
+      summary.offer(lastSyncBlockId);
+    } else {
+      summary.offer(new BlockCapsule.BlockId(
+          ByteString.fromHex("0000000000989680c8808334bae97e8b27d5e75e559a22d883caa5143e1a3894"),
+          startSyncNum));
+    }
+
     return summary;
   }
 
