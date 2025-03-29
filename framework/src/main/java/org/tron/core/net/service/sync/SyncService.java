@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import com.google.protobuf.ByteString;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,19 +71,30 @@ public class SyncService {
 
   private final long syncFetchBatchNum = Args.getInstance().getSyncFetchBatchNum();
 
+  private long startSyncNum = 10_000_000;
+  private long requestedCount = 0;
+  private long startRequestTime = 0;
+  private long lastRequestTime = System.currentTimeMillis();
+  private long lastReportTime = System.currentTimeMillis();
+  private long receiveBlockCount = 0;
+  @Setter
+  private BlockId lastSyncBlockId;
+
+
   public void init() {
-    fetchExecutor.scheduleWithFixedDelay(() -> {
+    ExecutorServiceManager.scheduleWithFixedDelay(fetchExecutor, () -> {
       try {
-        if (fetchFlag) {
-          fetchFlag = false;
-          startFetchSyncBlock();
-        }
+//        if (fetchFlag) {
+//          fetchFlag = false;
+//          startFetchSyncBlock();
+//        }
+        startFetchSyncBlock();
       } catch (Exception e) {
         logger.error("Fetch sync block error", e);
       }
-    }, 10, 1, TimeUnit.SECONDS);
+    }, 10000, 10, TimeUnit.MILLISECONDS);
 
-    blockHandleExecutor.scheduleWithFixedDelay(() -> {
+    ExecutorServiceManager.scheduleWithFixedDelay(blockHandleExecutor, () -> {
       try {
         if (handleFlag) {
           handleFlag = false;
@@ -90,7 +103,7 @@ public class SyncService {
       } catch (Exception e) {
         logger.error("Handle sync block error", e);
       }
-    }, 10, 1, TimeUnit.SECONDS);
+    }, 10000, 100, TimeUnit.MILLISECONDS);
   }
 
   public void close() {
@@ -119,10 +132,11 @@ public class SyncService {
       }
       LinkedList<BlockId> chainSummary;
       synchronized (tronNetDelegate.getForkLock()) {
-        chainSummary = getBlockChainSummary(peer);
+        chainSummary = getBlockChainSummaryTest(peer);
       }
       peer.setSyncChainRequested(new Pair<>(chainSummary, System.currentTimeMillis()));
       peer.sendMessage(new SyncBlockChainMessage(chainSummary));
+      startSyncNum = 0;
     } catch (Exception e) {
       logger.error("Peer {} sync failed, reason: {}", peer.getInetAddress(), e);
       peer.disconnect(ReasonCode.SYNC_FAIL);
@@ -130,18 +144,20 @@ public class SyncService {
   }
 
   public void processBlock(PeerConnection peer, BlockMessage blockMessage) {
-    synchronized (blockJustReceived) {
-      blockJustReceived.put(blockMessage, peer);
-    }
+//    synchronized (blockJustReceived) {
+//      blockJustReceived.put(blockMessage, peer);
+//    }
+    receiveBlockCount += 1;
+    peer.getSyncBlockToFetch().remove(blockMessage.getBlockId());
     handleFlag = true;
-    if (peer.isSyncIdle()) {
+    //if (peer.isSyncIdle()) {
       if (peer.getRemainNum() > 0
           && peer.getSyncBlockToFetch().size() <= syncFetchBatchNum) {
         syncNext(peer);
       } else {
         fetchFlag = true;
       }
-    }
+    //}
   }
 
   public void onDisconnect(PeerConnection peer) {
@@ -156,6 +172,19 @@ public class SyncService {
       requestBlockIds.invalidate(blockId);
       fetchFlag = true;
     }
+  }
+
+  private LinkedList<BlockId> getBlockChainSummaryTest(PeerConnection peer) throws P2pException {
+    LinkedList<BlockId> summary = new LinkedList<>();
+    if (startSyncNum == 0 && lastSyncBlockId != null) {
+      summary.offer(lastSyncBlockId);
+    } else {
+      summary.offer(new BlockCapsule.BlockId(
+          ByteString.fromHex("0000000000989680c8808334bae97e8b27d5e75e559a22d883caa5143e1a3894"),
+          startSyncNum));
+    }
+
+    return summary;
   }
 
   private LinkedList<BlockId> getBlockChainSummary(PeerConnection peer) throws P2pException {
@@ -226,7 +255,7 @@ public class SyncService {
   private void startFetchSyncBlock() {
     HashMap<PeerConnection, List<BlockId>> send = new HashMap<>();
     tronNetDelegate.getActivePeer().stream()
-        .filter(peer -> peer.isNeedSyncFromPeer() && peer.isSyncIdle())
+        //.filter(peer -> peer.isNeedSyncFromPeer() && peer.isSyncIdle())
         .filter(peer -> peer.isFetchAble())
         .forEach(peer -> {
           if (!send.containsKey(peer)) {
@@ -238,7 +267,7 @@ public class SyncService {
               requestBlockIds.put(blockId, peer);
               peer.getSyncBlockRequested().put(blockId, System.currentTimeMillis());
               send.get(peer).add(blockId);
-              if (send.get(peer).size() >= MAX_BLOCK_FETCH_PER_PEER) {
+              if (send.get(peer).size() >= 2000) {
                 break;
               }
             }
@@ -248,6 +277,24 @@ public class SyncService {
     send.forEach((peer, blockIds) -> {
       if (!blockIds.isEmpty()) {
         peer.sendMessage(new FetchInvDataMessage(new LinkedList<>(blockIds), InventoryType.BLOCK));
+        requestedCount += blockIds.size();
+        long currentTime = System.currentTimeMillis();
+        if (startRequestTime > 0) {
+          if (currentTime - lastReportTime > 10 * 1000) {
+            long allQps = StrictMath.floorDiv(requestedCount * 1000,
+                currentTime - startRequestTime);
+            long currentQps = StrictMath.floorDiv(blockIds.size() * 1000,
+                currentTime - lastRequestTime);
+            long receiveQps = StrictMath.floorDiv(receiveBlockCount * 1000,
+                currentTime - startRequestTime);
+            logger.info("fast request block, allQps: {}, currentQps: {}, receiveQps: {}",
+                allQps, currentQps, receiveQps);
+            lastReportTime = currentTime;
+          }
+        } else {
+          startRequestTime = currentTime;
+        }
+        lastRequestTime = currentTime;
       }
     });
   }
