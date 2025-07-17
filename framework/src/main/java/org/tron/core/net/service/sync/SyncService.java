@@ -134,6 +134,11 @@ public class SyncService {
       blockJustReceived.put(blockMessage, peer);
     }
     handleFlag = true;
+    if (peer.getSyncBlockToFetch().size() <= syncFetchBatchNum) {
+      logger.info("===== peer:{}, remain:{}, syncBlockRequested.isEmpty:{}, syncChainRequested:{}",
+          peer.getInetAddress(), peer.getRemainNum(),
+          peer.getSyncBlockRequested().isEmpty(), peer.getSyncChainRequested() == null);
+    }
     if (peer.isSyncIdle()) {
       if (peer.getRemainNum() > 0
           && peer.getSyncBlockToFetch().size() <= syncFetchBatchNum) {
